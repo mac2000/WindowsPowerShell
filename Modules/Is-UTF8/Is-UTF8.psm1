@@ -21,6 +21,10 @@ Function Is-UTF8 {
     Process {
         $bytes1 = Get-Content -Path $Path -Encoding Byte -Raw
         $bytes2 = [System.Text.Encoding]::UTF8.GetBytes((Get-Content -Path $Path -Encoding UTF8 -Raw))
+
+        if($bytes1[0] -eq 239 -and $bytes1[1] -eq 187 -and $bytes1[2] -eq 191) { # UTF-8 with BOM
+            $bytes1 = $bytes1 | select -Skip 3
+        }
     
         if(Compare-Object $bytes1 $bytes2) {
             #Write-Host $Path -ForegroundColor Red
