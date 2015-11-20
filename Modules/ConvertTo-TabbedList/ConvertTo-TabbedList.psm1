@@ -47,7 +47,6 @@ Function ConvertTo-TabbedList {
                     #}
                     $items += $_.Value
                 }
-                
             }
 
             Write-Output ($items -join "`t")
