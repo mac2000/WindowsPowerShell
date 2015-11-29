@@ -22,7 +22,6 @@ function Destroy-VM
     Process
     {
         Get-VMHardDiskDrive -VMName $Name | Remove-Item -Force -ErrorAction SilentlyContinue
-        Get-VMHardDiskDrive -VMName $Name | Remove-VMHardDiskDrive -ErrorAction SilentlyContinue
         Remove-VM -Name $Name -Force -ErrorAction SilentlyContinue
     }
     End {}
@@ -112,4 +111,72 @@ function Get-VMIP
         Get-VMNetworkAdapter -VMName $Name | Select-Object -ExpandProperty IPAddresses | ?{ $_ -Like '*.*.*.*'} | Select-Object -First 1
     }
     End {}
+}
+
+<#
+.Synopsis
+   Creates VM from VHD
+.EXAMPLE
+   New-VMFromVHD -Name Server1 -VHD C:\VHD\Server.vhdx
+#>
+function New-VMFromVHD
+{
+    Param
+    (
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=0)]
+        [ValidateNotNullOrEmpty()]
+        [Alias('VMName')]
+        [string]$Name,
+
+        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true, Position=1)]
+        [Alias('Path')]
+        [string]$VHD,
+
+        [string[]]$NetworkAdapters = @(),
+        [System.Int64]$MemoryStartupBytes = 1Gb,
+        [int]$Generation = 2,
+        [int]$ProcessorCount = 1,
+
+        [bool]$GuestServiceInterface = $true,
+        [bool]$Start = $true
+    )
+    Begin {
+        if(-not (Test-Path $VHD))
+        {
+            Throw "$VHD not found"
+        }
+
+        $VirtualHardDiskPath = Get-VMHost | Select-Object -ExpandProperty VirtualHardDiskPath
+        $Path = Join-Path -Path $VirtualHardDiskPath -ChildPath "$Name.vhdx"
+        if(Test-Path $Path) {
+            Throw "$Path already exists, remove it first or chose another name"
+        }
+
+        if($NetworkAdapters.Count -eq 0) {
+            $NetworkAdapters += Get-VMSwitch | Where-Object SwitchType -In @('External', 'Internal') | Select-Object -ExpandProperty Name -First 1
+        }
+    }
+    Process
+    {
+        New-VHD -Path $Path -ParentPath $VHD
+        New-VM -Name $Name -Generation $Generation -VHDPath $Path -MemoryStartupBytes $MemoryStartupBytes -SwitchName ($NetworkAdapters | Select-Object -First 1)
+        Set-VMProcessor -VMName $Name -Count $ProcessorCount
+        
+        if($GuestServiceInterface)
+        {
+            Enable-VMIntegrationService -Name 'Guest Service Interface' -VMName $Name
+        }
+
+        $NetworkAdapters | Select-Object -Skip 1 | %{
+            Add-VMNetworkAdapter -VMName $Name -SwitchName $_
+        }
+
+        if($Start)
+        {
+            Start-VM $Name
+        }
+    }
+    End {
+    
+    }
 }
