@@ -132,11 +132,16 @@ function New-VMFromVHD
         [Alias('Path')]
         [string]$VHD,
 
+        [Alias('ETH')]
         [string[]]$NetworkAdapters = @(),
+
+        [Alias('RAM')]
         [System.Int64]$MemoryStartupBytes = 1Gb,
-        [int]$Generation = 2,
+        
+        [Alias('CPU')]
         [int]$ProcessorCount = 1,
 
+        [int]$Generation = 2,
         [bool]$GuestServiceInterface = $true,
         [bool]$Start = $true
     )
