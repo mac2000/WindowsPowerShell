@@ -151,8 +151,10 @@ function New-VMFromVHD
             Throw "$VHD not found"
         }
 
+        $Extension = [System.IO.Path]::GetExtension($VHD)
+        
         $VirtualHardDiskPath = Get-VMHost | Select-Object -ExpandProperty VirtualHardDiskPath
-        $Path = Join-Path -Path $VirtualHardDiskPath -ChildPath "$Name.vhdx"
+        $Path = Join-Path -Path $VirtualHardDiskPath -ChildPath ($Name + $Extension)
         if(Test-Path $Path) {
             Throw "$Path already exists, remove it first or chose another name"
         }
