@@ -16,7 +16,7 @@ function Destroy-VM
     Begin {
         if((Get-VM $Name).State -ne 'Off') {
             Write-Verbose "Stop $Name VM before deleting its VHD"
-            Stop-VM $Name
+            Stop-VM $Name -TurnOff -Force
         }
     }
     Process
@@ -165,22 +165,22 @@ function New-VMFromVHD
     }
     Process
     {
-        New-VHD -Path $Path -ParentPath $VHD
-        New-VM -Name $Name -Generation $Generation -VHDPath $Path -MemoryStartupBytes $MemoryStartupBytes -SwitchName ($NetworkAdapters | Select-Object -First 1)
-        Set-VMProcessor -VMName $Name -Count $ProcessorCount
+        New-VHD -Path $Path -ParentPath $VHD | Out-Null
+        New-VM -Name $Name -Generation $Generation -VHDPath $Path -MemoryStartupBytes $MemoryStartupBytes -SwitchName ($NetworkAdapters | Select-Object -First 1) | Out-Null
+        Set-VMProcessor -VMName $Name -Count $ProcessorCount | Out-Null
         
         if($GuestServiceInterface)
         {
-            Enable-VMIntegrationService -Name 'Guest Service Interface' -VMName $Name
+            Enable-VMIntegrationService -Name 'Guest Service Interface' -VMName $Name | Out-Null
         }
 
         $NetworkAdapters | Select-Object -Skip 1 | %{
-            Add-VMNetworkAdapter -VMName $Name -SwitchName $_
+            Add-VMNetworkAdapter -VMName $Name -SwitchName $_ | Out-Null
         }
 
         if($Start)
         {
-            Start-VM $Name
+            Start-VM $Name | Out-Null
         }
     }
     End {
